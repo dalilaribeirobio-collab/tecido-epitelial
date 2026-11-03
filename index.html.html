@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Missão: Explorando o Tecido Epitelial (Versão Smartphone)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; background-color: #0f172a; color: #22c55e; min-height: 100dvh; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+        .card-style { background-color: #1e293b; border: 1px solid #22c55e; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); }
+        .btn-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+        .correct-answer { background-color: #16a34a !important; border-color: #15803d !important; color: white !important; }
+        .wrong-answer { background-color: #dc2626 !important; border-color: #b91c1c !important; color: white !important; }
+        .screen { display: none; opacity: 0; transition: opacity 0.3s ease; }
+        .screen.active { display: flex; opacity: 1; }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+        button, select, input { touch-action: manipulation; }
+    </style>
+</head>
+<body class="flex items-center justify-center relative p-2 min-h-[100dvh] w-full">
+    <!-- MENSAGENS FLUTUANTES -->
+    <div id="toast" class="fixed top-2 left-1/2 transform -translate-x-1/2 bg-slate-900 text-green-400 px-4 py-2 border border-green-500 font-bold shadow-lg opacity-0 transition-opacity duration-300 z-50 pointer-events-none text-sm w-[90%] text-center rounded">Mensagem de erro</div>
+
+    <!-- TELA DE LOADING INICIAL -->
+    <div id="loading-screen" class="screen active flex-col items-center justify-center text-center h-full">
+        <div class="text-3xl mb-4 blink">[ SISTEMA FORENSE ]</div>
+        <p class="text-base text-green-500 font-bold">Carregando Módulos Mobile...</p>
+    </div>
+
+    <!-- TELA INICIAL (REGISTRO) -->
+    <div id="start-screen" class="screen flex-col items-center text-center w-full max-w-sm card-style p-5">
+        <div class="text-3xl mb-2 blink">_</div>
+        <h1 class="text-2xl font-black text-green-500 mb-1 uppercase">Dep. Investigação</h1>
+        <p class="text-green-700 text-xs mb-6 tracking-widest font-bold uppercase">Caso: Tecido Epitelial</p>
+        
+        <div class="w-full flex flex-col gap-4 mb-6">
+            <div>
+                <label class="block text-left text-green-500 text-xs font-bold mb-1" for="player-name">Nº Distintivo / Nome_</label>
+                <input id="player-name" type="text" placeholder="Digite seu nome..." class="w-full px-3 py-4 bg-slate-900 border border-green-500 text-green-400 outline-none focus:border-green-300 text-base rounded" maxlength="20">
+            </div>
+            <div>
+                <label class="block text-left text-green-500 text-xs font-bold mb-1" for="player-turma">Divisão_</label>
+                <select id="player-turma" class="w-full px-3 py-4 bg-slate-900 border border-green-500 text-green-400 outline-none focus:border-green-300 text-base rounded">
+                    <option value="" disabled selected>Selecione...</option>
+                    <option value="TESTE">TESTE</option>
+                    <option value="1º A COMEX">1º A COMEX</option>
+                    <option value="1º B COMEX">1º B COMEX</option>
+                    <option value="1º A FRUT">1º A FRUT</option>
+                    <option value="1º B FRUT">1º B FRUT</option>
+                </select>
+            </div>
+        </div>
+        <button id="btn-start" class="text-lg px-4 py-4 bg-green-900 hover:bg-green-800 text-green-400 border border-green-500 uppercase tracking-widest w-full font-bold rounded">> AUTENTICAR</button>
+    </div>
+
+    <!-- TELA DE BRIEFING (CSI) -->
+    <div id="briefing-screen" class="screen flex-col w-full max-w-sm card-style p-5 bg-slate-900 border-green-500">
+        <div class="text-2xl mb-4 text-green-500 font-mono font-bold text-center">[TERMINAL FORENSE]</div>
+        <p id="briefing-text" class="text-green-400 font-mono text-sm mb-6 min-h-[160px] text-left leading-relaxed"></p>
+        <button id="btn-proceed" class="font-mono font-bold text-lg px-4 py-4 bg-green-900 text-green-400 border border-green-500 rounded uppercase tracking-wider w-full hidden active:bg-green-800">> INICIAR ANÁLISE_</button>
+    </div>
+
+    <!-- TELA DE JOGO -->
+    <div id="game-screen" class="screen flex-col w-full max-w-sm card-style p-4">
+        <div class="flex justify-between items-end mb-3">
+            <div>
+                <span id="evidence-label" class="text-green-600 font-bold tracking-widest text-[10px] uppercase block mb-1">Evidência</span>
+                <span id="progress-text" class="text-base font-bold text-green-400 bg-slate-800 px-2 py-1 border border-green-800 rounded">1/8</span>
+            </div>
+            <div class="text-center">
+                <span class="text-green-600 font-bold tracking-widest text-[10px] uppercase block mb-1">Timer_</span>
+                <div id="timer-display" class="text-2xl font-black text-green-400">15s</div>
+            </div>
+            <div class="text-right">
+                <span class="text-green-600 font-bold tracking-widest text-[10px] uppercase block mb-1">Score_</span>
+                <span id="current-score-text" class="text-base font-bold text-green-400 bg-slate-800 px-2 py-1 border border-green-800 rounded">0</span>
+            </div>
+        </div>
+        <div class="w-full bg-slate-800 h-1.5 mb-4 border border-green-900 rounded overflow-hidden">
+            <div id="progress-bar" class="bg-green-500 h-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <h2 id="question-text" class="text-base font-bold text-green-300 mb-4 text-left min-h-[70px] flex items-center leading-snug"></h2>
+        <div id="options-container" class="grid grid-cols-1 gap-3"></div>
+    </div>
+
+    <!-- TELA FINAL E RANKING -->
+    <div id="end-screen" class="screen flex-col items-center w-full max-w-sm card-style p-4">
+        <div class="w-full flex flex-col items-center text-center justify-center border-b border-green-800 pb-4 mb-4">
+            <div class="text-2xl mb-2 blink">[ CASO ENCERRADO ]</div>
+            <h1 class="text-xl font-black text-green-500 mb-2">Relatório Final</h1>
+            <p id="final-player-name" class="text-[10px] text-green-400 font-bold mb-4 bg-slate-800 px-2 py-1 border border-green-700 rounded truncate max-w-full">Pesquisador</p>
+            <p class="text-[10px] text-green-700 uppercase font-black tracking-widest mb-1">Score Final_</p>
+            <div class="text-4xl font-black text-green-400 mb-2" id="final-score-text">0</div>
+            <div id="sync-status" class="text-[10px] font-bold text-green-600 flex items-center justify-center gap-1 mt-2 bg-slate-900 px-2 py-1 border border-green-900 w-full rounded">
+                <span class="blink">_</span>Salvando no banco de dados...
+            </div>
+        </div>
+        <div class="w-full flex flex-col">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-sm font-black text-green-500 flex items-center gap-1">> RANKING DA DIVISÃO</h2>
+                <span id="leaderboard-turma-badge" class="bg-green-900 text-green-400 text-[10px] font-black px-2 py-0.5 border border-green-700 uppercase tracking-wider rounded">Turma</span>
+            </div>
+            <div class="bg-slate-900 border border-green-800 h-[180px] overflow-y-auto relative rounded">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead class="bg-slate-800 text-green-600 sticky top-0 font-black">
+                        <tr><th class="px-2 py-1.5 w-10 text-center">POS</th><th class="px-2 py-1.5">AGENTE</th><th class="px-2 py-1.5 text-right">SCORE</th></tr>
+                    </thead>
+                    <tbody id="leaderboard-body" class="divide-y divide-green-900 font-mono text-green-400">
+                        <tr><td colspan="3" class="text-center py-4 text-green-700">Aguardando dados... 📡</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <button onclick="resetGame()" class="mt-4 text-sm px-4 py-4 bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-green-400 border border-green-500 uppercase tracking-widest w-full font-bold rounded">> NOVA INVESTIGAÇÃO</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'missao-epitelial-dev';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { projectId: "demo-project" };
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let user = null;
+        let unsubscribeLeaderboard = null;
+        const questions = [
+            { question: "Evidência #1: Encontrámos uma amostra na cena do crime sem vasos sanguíneos, mas firmemente unida sobre uma lâmina basal. Qual é a classificação primária deste tecido?", options: ["Tecido Epitelial", "Tecido Conjuntivo", "Tecido Muscular", "Tecido Nervoso"], correctIndex: 0 },
+            { question: "Evidência #2: A vítima apresenta lacerações numa barreira de múltiplas camadas de células achatadas. Qual é o diagnóstico forense?", options: ["Epitélio Simples Cúbico", "Epitélio Estratificado Pavimentoso", "Epitélio Pseudoestratificado", "Epitélio Simples Prismático"], correctIndex: 1 },
+            { question: "Evidência #3: Foi detetada uma toxina inalada. A toxina danificou um tecido onde todas as células tocam a lâmina basal, mas de alturas diferentes, contendo cílios. Onde ocorreu a lesão?", options: ["Intestino", "Vias respiratórias (Traqueia)", "Rins", "Pele"], correctIndex: 1 },
+            { question: "Evidência #4: A autópsia revelou uma glândula exócrina anómala que liberta toda a célula juntamente com a secreção. Que tipo de glândula estamos a observar?", options: ["Merócrina", "Apócrina", "Holócrina", "Endócrina"], correctIndex: 2 },
+            { question: "Evidência #5: O veneno afetou uma glândula com regiões endócrinas e exócrinas simultaneamente. Que órgão vital foi comprometido?", options: ["Fígado", "Glândula Tireoide", "Pâncreas", "Glândula Sudorípara"], correctIndex: 2 },
+            { question: "Evidência #6: Para encerrar o caso, precisamos de perceber porque o assassino teve dificuldade em destruir esta barreira. Qual é a principal defesa natural do tecido epitelial?", options: ["Alta capacidade regenerativa", "Forte vascularização sanguínea", "Presença de impulsos nervosos rápidos", "Capacidade de contração voluntária"], correctIndex: 0 },
+            { question: "Evidência #7: A vítima inalou um gás tóxico que atravessou a barreira dos alvéolos pulmonares rapidamente. A perícia identificou que essa barreira é formada por uma única camada de células muito achatadas. Qual é esta classificação?", options: ["Epitélio Simples Pavimentoso", "Epitélio Estratificado Cúbico", "Epitélio Pseudoestratificado", "Tecido Conjuntivo Frouxo"], correctIndex: 0 },
+            { question: "Evidência #8: O laudo toxicológico final apontou falência na absorção de nutrientes no intestino delgado. O tecido local apresenta células altas (prismáticas) com estruturas especiais no ápice para aumentar o contato. Que estruturas são essas?", options: ["Cílios", "Microvilosidades", "Flagelos", "Glândulas endócrinas"], correctIndex: 1 }
+        ];
+        let currentQuestionIndex = 0, score = 0, isAnswering = false, playerName = "", playerTurma = "";
+        let timerInterval, timeLeft = 15;
+        const TIME_PER_QUESTION = 15;
+        const screens = { loading: document.getElementById('loading-screen'), start: document.getElementById('start-screen'), briefing: document.getElementById('briefing-screen'), game: document.getElementById('game-screen'), end: document.getElementById('end-screen') };
+        const ui = {
+            playerNameInput: document.getElementById('player-name'), playerTurmaSelect: document.getElementById('player-turma'), btnStart: document.getElementById('btn-start'), toast: document.getElementById('toast'), briefingText: document.getElementById('briefing-text'), btnProceed: document.getElementById('btn-proceed'), progressText: document.getElementById('progress-text'), timerDisplay: document.getElementById('timer-display'), currentScoreText: document.getElementById('current-score-text'), evidenceLabel: document.getElementById('evidence-label'), questionText: document.getElementById('question-text'), optionsContainer: document.getElementById('options-container'), finalPlayerName: document.getElementById('final-player-name'), finalScoreText: document.getElementById('final-score-text'), syncStatus: document.getElementById('sync-status'), leaderboardTurmaBadge: document.getElementById('leaderboard-turma-badge'), leaderboardBody: document.getElementById('leaderboard-body')
+        };
+        async function initAuth() {
+            try {
+                if (initialAuthToken) await signInWithCustomToken(auth, initialAuthToken);
+                else await signInAnonymously(auth);
+                user = auth.currentUser;
+                switchScreen('loading', 'start');
+            } catch (error) { screens.loading.innerHTML = `<p class="text-red-400 font-bold text-sm px-4">Erro de conexão aos servidores (Auth). Verifique a internet e atualize a página.</p>`; }
+        }
+        function switchScreen(fromId, toId) { Object.values(screens).forEach(s => s.classList.remove('active')); setTimeout(() => screens[toId].classList.add('active'), 50); }
+        function showToast(message) { ui.toast.innerText = message; ui.toast.classList.remove('opacity-0'); setTimeout(() => ui.toast.classList.add('opacity-0'), 3000); }
+        window.startGame = function() { 
+            playerName = ui.playerNameInput.value.trim(); playerTurma = ui.playerTurmaSelect.value;
+            if (playerName.length < 2) { showToast("FALHA: NOME INVÁLIDO."); return; }
+            if (!playerTurma) { showToast("FALHA: SELECIONE A DIVISÃO."); return; }
+            currentQuestionIndex = 0; score = 0; ui.currentScoreText.innerText = '0';
+            startBriefing();
+        }
+        ui.btnStart.addEventListener('click', window.startGame);
+        function startBriefing() {
+            switchScreen('start', 'briefing'); ui.btnProceed.classList.add('hidden');
+            const message = `Agente ${playerName.toUpperCase()}, um corpo foi encontrado. Precisamos da sua perícia em Histologia para analisar as amostras da cena. O tempo é essencial para evitar que as evidências se degradem.\n\n> PREPARE-SE.`;
+            let i = 0; ui.briefingText.innerHTML = '';
+            function typeWriter() {
+                if (i < message.length) { ui.briefingText.innerHTML += (message.charAt(i) === '\n') ? '<br>' : message.charAt(i); i++; setTimeout(typeWriter, 30); } 
+                else { ui.btnProceed.classList.remove('hidden'); }
+            }
+            setTimeout(typeWriter, 400);
+        }
+        ui.btnProceed.addEventListener('click', () => { switchScreen('briefing', 'game'); loadQuestion(); });
+        function loadQuestion() {
+            isAnswering = false; const currentQ = questions[currentQuestionIndex];
+            ui.progressText.innerText = `${currentQuestionIndex + 1}/${questions.length}`; ui.evidenceLabel.innerText = `EVID #${currentQuestionIndex + 1}`;
+            document.getElementById('progress-bar').style.width = `${(currentQuestionIndex / questions.length) * 100}%`;
+            timeLeft = TIME_PER_QUESTION; updateTimerDisplay(); clearInterval(timerInterval); timerInterval = setInterval(handleTimerTick, 1000);
+            ui.questionText.innerText = currentQ.question; ui.optionsContainer.innerHTML = '';
+            currentQ.options.forEach((option, index) => {
+                const button = document.createElement('button'); button.innerText = `> ${option}`;
+                button.className = 'text-left p-4 text-sm w-full bg-slate-800 text-green-400 border border-green-700 active:bg-slate-700 active:border-green-500 font-bold rounded shadow-sm';
+                button.onclick = () => selectAnswer(index, button); ui.optionsContainer.appendChild(button);
+            });
+        }
+        function handleTimerTick() {
+            timeLeft--; updateTimerDisplay();
+            if (timeLeft <= 0) { clearInterval(timerInterval); timeOutAnswer(); }
+        }
+        function updateTimerDisplay() {
+            ui.timerDisplay.innerText = `${timeLeft}s`;
+            if (timeLeft <= 5) ui.timerDisplay.classList.add('text-red-500', 'animate-ping');
+            else ui.timerDisplay.classList.remove('text-red-500', 'animate-ping');
+        }
+        function timeOutAnswer() {
+            if (isAnswering) return; isAnswering = true;
+            const currentQ = questions[currentQuestionIndex], buttons = ui.optionsContainer.children;
+            buttons[currentQ.correctIndex].classList.replace('bg-slate-800', 'bg-green-700'); buttons[currentQ.correctIndex].classList.replace('text-green-400', 'text-slate-900'); buttons[currentQ.correctIndex].classList.replace('border-green-700', 'border-green-400');
+            finishQuestionPhase(buttons);
+        }
+        function selectAnswer(selectedIndex, buttonElement) {
+            if (isAnswering) return; isAnswering = true; clearInterval(timerInterval);
+            const currentQ = questions[currentQuestionIndex], buttons = ui.optionsContainer.children;
+            if (selectedIndex === currentQ.correctIndex) {
+                buttonElement.classList.add('correct-answer'); const pointsEarned = 500 + (timeLeft * 50); score += pointsEarned; ui.currentScoreText.innerText = score; animateScoreGained(buttonElement, `+${pointsEarned}`);
+            } else {
+                buttonElement.classList.add('wrong-answer');
+                buttons[currentQ.correctIndex].classList.replace('bg-slate-800', 'bg-green-700'); buttons[currentQ.correctIndex].classList.replace('text-green-400', 'text-slate-900'); buttons[currentQ.correctIndex].classList.replace('border-green-700', 'border-green-400');
+            }
+            finishQuestionPhase(buttons);
+        }
+        function animateScoreGained(element, text) {
+            const floater = document.createElement('div'); floater.innerText = text; floater.className = 'absolute text-cyan-400 font-bold text-xl z-50 pointer-events-none drop-shadow-md';
+            const rect = element.getBoundingClientRect(); floater.style.left = `${rect.left + 20}px`; floater.style.top = `${rect.top - 10}px`;
+            document.body.appendChild(floater);
+            floater.animate([ { transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(-40px)', opacity: 0 } ], { duration: 1000, easing: 'ease-out' }).onfinish = () => floater.remove();
+        }
+        function finishQuestionPhase(buttons) {
+            for (let btn of buttons) btn.classList.add('btn-disabled');
+            setTimeout(() => { currentQuestionIndex++; if (currentQuestionIndex < questions.length) loadQuestion(); else endGame(); }, 1500);
+        }
+        async function endGame() {
+            switchScreen('game', 'end'); ui.finalPlayerName.innerText = `AGENTE ${playerName.toUpperCase()} | DIV: ${playerTurma}`; ui.finalScoreText.innerText = score; ui.leaderboardTurmaBadge.innerText = playerTurma; ui.syncStatus.innerHTML = `> Transmitindo... <span class="blink">...</span>`;
+            if (!user) { ui.syncStatus.innerHTML = `<span class="text-red-500">> ERRO DE REDE.</span>`; return; }
+            try {
+                const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                await addDoc(scoresRef, { name: playerName.toUpperCase(), turma: playerTurma, score: score, timestamp: new Date().getTime(), userId: user.uid });
+                ui.syncStatus.innerHTML = `<span class="text-green-500">> DADOS SALVOS.</span>`; startLeaderboardListener(scoresRef);
+            } catch (error) { ui.syncStatus.innerHTML = `<span class="text-red-400">Falha ao sincronizar.</span>`; }
+        }
+        function startLeaderboardListener(scoresRef) {
+            if (unsubscribeLeaderboard) unsubscribeLeaderboard();
+            ui.leaderboardBody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-xs"><span class="animate-spin text-lg inline-block mb-1">⏳</span><br>Buscando ranking...</td></tr>`;
+            unsubscribeLeaderboard = onSnapshot(scoresRef, (snapshot) => {
+                let allScores = []; snapshot.forEach(doc => { allScores.push({ id: doc.id, ...doc.data() }); });
+                const turmaScores = allScores.filter(item => item.turma === playerTurma).sort((a, b) => b.score === a.score ? a.timestamp - b.timestamp : b.score - a.score);
+                renderLeaderboard(turmaScores);
+            }, () => { ui.leaderboardBody.innerHTML = `<tr><td colspan="3" class="text-center py-2 text-red-400 text-xs">Falha ao obter ranking.</td></tr>`; });
+        }
+        function renderLeaderboard(data) {
+            ui.leaderboardBody.innerHTML = '';
+            if (data.length === 0) { ui.leaderboardBody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-green-700 text-xs">SEM DADOS REGISTADOS.</td></tr>`; return; }
+            data.forEach((entry, index) => {
+                const tr = document.createElement('tr'); const isCurrentPlayer = (entry.userId === user.uid && entry.timestamp >= new Date().getTime() - 10000); 
+                tr.innerHTML = `<td class="px-2 py-1.5 text-center text-green-600 truncate max-w-[40px]">[${index + 1}]</td><td class="px-2 py-1.5 truncate max-w-[120px] ${isCurrentPlayer ? 'text-cyan-400 font-bold' : ''}">${entry.name}</td><td class="px-2 py-1.5 text-right ${isCurrentPlayer ? 'text-cyan-400 font-bold' : 'text-green-400'}">${entry.score}</td>`;
+                ui.leaderboardBody.appendChild(tr);
+            });
+        }
+        window.resetGame = function() { if(unsubscribeLeaderboard) { unsubscribeLeaderboard(); unsubscribeLeaderboard = null; } switchScreen('end', 'start'); }
+        initAuth();
+    </script>
+</body>
+</html>
